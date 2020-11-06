@@ -1,0 +1,4 @@
+.gomodules
+.devcontainer
+cache-built
+*.bak
