@@ -1,4 +1,4 @@
-module gitlab.com/martinfleming/spa-server
+module github.com/defencedigital/spa-server
 
 go 1.15
 
