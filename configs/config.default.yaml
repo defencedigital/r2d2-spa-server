@@ -1,0 +1,14 @@
+port: 80
+TLSPort: 443
+allowDirectoryIndex: true
+sitesAvailable:
+  - path: "/var/www/html"
+    index: "index.html"
+    host: "{all:.*}"
+    certFile: /etc/spa-server/certs/spa-server.pem
+    keyFile: /etc/spa-server/certs/spa-server.key
+    redirectNonTLS: true
+    compress: true
+    compressionLevel: 9
+
+disableHealthCheck: false
