@@ -23,7 +23,7 @@ if [ "$CI" == "true" ]; then
 
     docker push "$IMAGE_NAME:$BRANCH_TAG"
 
-    if [ "$GIT_BRANCH" == "master" ]; then
+    if [ "$GIT_BRANCH" == "main" ]; then
         # shellcheck disable=SC1091
         source "./scripts/semver.sh"
         RELEASE_TAG="$(get_tag "patch")"
