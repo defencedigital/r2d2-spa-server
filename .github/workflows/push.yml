@@ -48,12 +48,12 @@ jobs:
           make update
       - name: Write Go List for nancy
         run: go list -json -m all > go.list
-      # - name: Running nancy
-      #   uses: sonatype-nexus-community/nancy-github-action@main
-      # - name: Running gosec
-      #   uses: securego/gosec@master
-      #   with:
-      #     args: ./...
+      - name: Running nancy
+        uses: sonatype-nexus-community/nancy-github-action@main
+      - name: Running gosec
+        uses: securego/gosec@master
+        with:
+          args: ./...
 
   build:
     name: Docker image build (multiarch)
