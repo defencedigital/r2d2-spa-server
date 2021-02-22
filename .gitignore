@@ -2,3 +2,5 @@
 .devcontainer
 cache-built
 *.bak
+*.log
+*service.bin

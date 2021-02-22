@@ -1,65 +1,129 @@
-name: SPA Server
-
+name: Microservice docker image build.
 
 on:
   push:
     branches:
       - "*"
 
-
 env:
   CI: true
-  DOCKER_USER: ${{ github.actor }}
-  DOCKER_PASS: ${{ secrets.GITHUB_TOKEN }}
-  DOCKER_REG: docker.pkg.github.com
-
+  GOPRIVATE: "github.com/defencedigital/*"
 
 jobs:
-  check:
-    name: Check
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v2
-
-      - name: Code analysis
-        run: ./run_static_analysis.sh
-
-
   test:
-    name: Test
+    name: Code checks pipeline
+    runs-on: ubuntu-20.04
+    container: github/super-linter:v3
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+      - name: Configure git for private modules
+        run: |
+          git config --global url."https://${{ secrets.DOCKER_TOKEN }}:x-oauth-basic@github.com/defencedigital".insteadOf "https://github.com/defencedigital"
+          make update
+      - name: Lint Code Base
+        env:
+          VALIDATE_ALL_CODEBASE: true
+          VALIDATE_DOCKERFILE: false # this leaves us with hadolint only
+          VALIDATE_GO: false # disable bulk validation of go files, run the linter manually
+          DEFAULT_BRANCH: main
+          GITHUB_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+          LOG_LEVEL: WARN
+        run: |
+          golangci-lint run ./...
+          /action/lib/linter.sh
+      - name: Run unit tests
+        run: |
+          make test
+  code_scans:
+    name: Code scans pipeline
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
-
-      - name: Unit tests
-        run: ./run_unit_tests.sh
-
+      - name: Configure git for private modules
+        run: |
+          git config --global url."https://${{ secrets.DOCKER_TOKEN }}:x-oauth-basic@github.com/defencedigital".insteadOf "https://github.com/defencedigital"
+          make update
+      - name: Write Go List for nancy
+        run: go list -json -m all > go.list
+      # - name: Running nancy
+      #   uses: sonatype-nexus-community/nancy-github-action@main
+      # - name: Running gosec
+      #   uses: securego/gosec@master
+      #   with:
+      #     args: ./...
 
   build:
-    name: Build
-    needs: [check, test]
+    name: Docker image build (multiarch)
     runs-on: ubuntu-20.04
+    needs: [test, code_scans]
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0
-
-      - name: Build image
-        run: ./scripts/build.sh
-
-
-  remove-package-versions:
-    name: Clean up Docker registry
-    runs-on: ubuntu-latest
-    steps:
-      - name: Remove old package versions
-        id: remove-package-versions
-        uses: navikt/remove-package-versions@main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ref: 'main'
+          fetch-depth: '0'
+      - name: Get release sha and run number
+        id: get_sha
+        run: |
+          echo "GITHUB_COMMIT_NUMBER=$(git rev-list --count HEAD)" >> $GITHUB_ENV
+          echo "GITHUB_SHA=$(echo ${GITHUB_SHA::8})" >> $GITHUB_ENV
+          echo "GITHUB_RUN_ID=$(echo ${GITHUB_RUN_NUMBER})" >> $GITHUB_ENV
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v1
         with:
-          remove_semver: false
-          keep_versions: 5
+          registry: ghcr.io
+          username: ${{ github.ACTOR }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+      - name: Prepare for push
+        id: prep
+        run: |
+          DOCKER_IMAGE=ghcr.io/${{ github.repository_owner }}/r2d2-ms-spa
+          VERSION=edge
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          TAGS="${DOCKER_IMAGE}:${VERSION}"
+          if [[ $VERSION =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+            TAGS="$TAGS,${DOCKER_IMAGE}:latest"
+          fi
+          TAGS="$TAGS,$DOCKER_IMAGE:${{ env.GITHUB_SHA }},$DOCKER_IMAGE:1.${{ env.GITHUB_COMMIT_NUMBER }}.${{ env.GITHUB_RUN_ID }},$DOCKER_IMAGE:latest"
+          echo ::set-output name=tags::${TAGS}
+          BRANCH=$(echo ${GITHUB_REF##*/} | tr '[A-Z]' '[a-z]')
+          LABELS="org.opencontainers.image.revision=$GITHUB_SHA"
+          LABELS="$LABELS,org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+          LABELS="$LABELS,org.opencontainers.image.version=$VERSION"
+          LABELS="$LABELS,com.github.repo.branch=$BRANCH"
+          LABELS="$LABELS,com.github.repo.dockerfile=Dockerfile"
+          echo ::set-output name=labels::${LABELS}
+          BUILD_ARGS="BRANCH=$BRANCH"
+          echo ::set-output name=args::${BUILD_ARGS}
+      - name: Tag names
+        run: echo ${{ steps.prep.outputs.tags }}
+      - name: Build image
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          file: ./build/Dockerfile
+          builder: ${{ steps.buildx.outputs.name }}
+          platforms: linux/arm64,linux/amd64
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.prep.outputs.tags }}
+          build-args: |
+            ci_github_auth=${{ secrets.DOCKER_TOKEN }}
+            ${{ steps.prep.outputs.args }}
+          labels: ${{ steps.prep.outputs.labels }}
+          no-cache: true
+      - name: Scan image
+        uses: anchore/scan-action@v2
+        with:
+          image: "ghcr.io/${{ github.repository_owner }}/r2d2-ms-spa:latest"
+          fail-build: true
