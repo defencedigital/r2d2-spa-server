@@ -7,7 +7,7 @@ CI_GITHUB_AUTH?="none"
 MS_DIR?="cmd/spa-server"
 
 
-SET_PRIVATE="github.com/defencedigital/r2d2.lib.common,github.com/defencedigital/r2d2.lib.database,github.com/defencedigital/r2d2.lib.queue"
+SET_PRIVATE="github.com/defencedigital/*"
 build: all
 
 all:
