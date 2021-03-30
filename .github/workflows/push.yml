@@ -49,17 +49,3 @@ jobs:
 
       - name: Build image
         run: ./scripts/build.sh
-
-
-  remove-package-versions:
-    name: Clean up Docker registry
-    runs-on: ubuntu-latest
-    steps:
-      - name: Remove old package versions
-        id: remove-package-versions
-        uses: navikt/remove-package-versions@main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          remove_semver: false
-          keep_versions: 5
