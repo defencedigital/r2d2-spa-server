@@ -5,9 +5,7 @@ sitesAvailable:
   - path: "/var/www/html"
     index: "index.html"
     host: "{all:.*}"
-    certFile: /etc/spa-server/certs/spa-server.pem
-    keyFile: /etc/spa-server/certs/spa-server.key
-    redirectNonTLS: true
+    redirectNonTLS: false
     compress: true
     compressionLevel: 9
 
