@@ -7,4 +7,5 @@ ADD static/vhost.conf /etc/nginx/conf.d/default.conf
 ADD certs/self-signed.crt /etc/ssl/certs-custom/self-signed.crt
 ADD certs/self-signed.key /etc/ssl/certs-custom/self-signed.key
 ADD certs/dhparam.pem /etc/ssl/certs-custom/dhparam.pem
+RUN nginx -t
 # COPY spa/. /var/www/html
