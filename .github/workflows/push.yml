@@ -22,7 +22,7 @@ jobs:
       - name: Prepare labels and tags
         id: prep
         run: |
-          SEMVER-$(./semver.sh)
+          SEMVER-$(shell ./semver.sh)
           BRANCH=$(echo ${GITHUB_REF##*/} | tr '[A-Z]' '[a-z]')
           SANITISED_REPOSITORY_NAME=$(echo ${{ github.event.repository.name }} | sed -e 's|\.|-|g')
           TAGS="${{ env.DOCKER_IMAGE_NAME }}:$(echo ${GITHUB_SHA::8}),${{ env.DOCKER_IMAGE_NAME }}:$(echo ${BRANCH} | sed -e 's|\.|-|g')"
