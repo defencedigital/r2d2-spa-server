@@ -52,3 +52,12 @@ jobs:
           tags: ${{ steps.prep.outputs.tags }}
           labels: ${{ steps.prep.outputs.labels }}
           no-cache: false
+      - name: Tag upon successful build
+        id: tag
+        run: |
+          BRANCH=$(echo ${GITHUB_REF##*/} | tr '[A-Z]' '[a-z]')
+          if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
+            SEMVER=$(./semver.sh)
+            git tag "v$SEMVER"
+            git push --tags
+          fi
