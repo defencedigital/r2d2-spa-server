@@ -1,4 +1,4 @@
-FROM nginx:mainline
+FROM nginx:1.20
 
 ADD static/vhost.conf /etc/nginx/conf.d/default.conf
 # SSL certification generation:
