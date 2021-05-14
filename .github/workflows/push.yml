@@ -22,17 +22,17 @@ jobs:
       - name: Prepare labels and tags
         id: prep
         run: |
-          SEMVER-$(shell ./semver.sh)
+          SEMVER=$(./semver.sh)
           BRANCH=$(echo ${GITHUB_REF##*/} | tr '[A-Z]' '[a-z]')
           SANITISED_REPOSITORY_NAME=$(echo ${{ github.event.repository.name }} | sed -e 's|\.|-|g')
           TAGS="${{ env.DOCKER_IMAGE_NAME }}:$(echo ${GITHUB_SHA::8}),${{ env.DOCKER_IMAGE_NAME }}:$(echo ${BRANCH} | sed -e 's|\.|-|g')"
           if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "master" ]; then
-            TAGS="$TAGS,${{ env.DOCKER_IMAGE_NAME }}:latest,${{ env.DOCKER_IMAGE_NAME }}:$SEMVER"
+            TAGS="$TAGS,${{ env.DOCKER_IMAGE_NAME }}:latest,${{ env.DOCKER_IMAGE_NAME }}:${SEMVER}"
           fi
           echo ::set-output name=tags::${TAGS}
           LABELS="org.opencontainers.image.revision=$(echo ${GITHUB_SHA::8})"
           LABELS="$LABELS,org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-          LABELS="$LABELS,org.opencontainers.image.version=$SEMVER"
+          LABELS="$LABELS,org.opencontainers.image.version=${SEMVER}"
           LABELS="$LABELS,com.github.repo.branch=$BRANCH"
           LABELS="$LABELS,com.github.repo.dockerfile=Dockerfile"
           echo ::set-output name=labels::${LABELS}
