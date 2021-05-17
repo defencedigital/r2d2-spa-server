@@ -2,3 +2,4 @@
 .devcontainer
 cache-built
 *.bak
+spa/
