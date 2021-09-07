@@ -1,4 +1,4 @@
-FROM nginx:1.20-perl
+FROM nginx:1.20-alpine-perl
 
 ADD static/nginx.conf /etc/nginx/nginx.conf
 ADD static/vhost.conf /etc/nginx/conf.d/default.conf
