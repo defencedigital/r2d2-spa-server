@@ -1,5 +1,7 @@
 FROM nginx:1.20-alpine-perl
 
+RUN apk upgrade --no-cache
+
 ADD static/nginx.conf /etc/nginx/nginx.conf
 ADD static/vhost.conf /etc/nginx/conf.d/default.conf
 ADD static/ssl-include.conf /etc/nginx/include/ssl-include.conf
